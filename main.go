@@ -24,7 +24,10 @@ func serveHTML(w http.ResponseWriter, r *http.Request) {
 	defer file.Close()
 
 	w.Header().Set("Content-Type", "text/html")
-	io.Copy(w, file)
+	if _, err := io.Copy(w, file); err != nil {
+		http.Error(w, "Could not copy file", 500)
+		return
+	}
 }
 
 // func dummyDB() {
@@ -56,7 +59,9 @@ func main() {
 	r.HandleFunc("/", serveHTML)
 	r.HandleFunc("/time", timeHandler)
 	log.Println("Starting server on :8080")
-	http.ListenAndServe(":8080", r)
+	if err := http.ListenAndServe(":8080", r); err != nil {
+		log.Fatal(err)
+	}
 
 	// dummyDB()
 	// dummyJWT()

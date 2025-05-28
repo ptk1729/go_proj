@@ -27,6 +27,73 @@ jobs:
     - name: Run tests
       run: go test -v ./...
 
+  lint:
+    name: Lint with golangci-lint
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # Required for actions/checkout
+    outputs:
+      # Output the linting status (success/failure)
+      lint_status: ${{ steps.run_golangci_lint.outputs.lint_status }}
+      # Output the full JSON report as a string
+      lint_report_json: ${{ steps.run_golangci_lint.outputs.lint_report_json }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.24.3' 
+          check-latest: true
+
+      - name: Install golangci-lint
+        run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+
+      - name: Run golangci-lint and set outputs
+        id: run_golangci_lint
+        run: |
+          LINT_REPORT_FILE="lint-report.json"
+          LINT_STATUS="success" # Default to success
+
+          echo "Running golangci-lint..."
+          set +e # Disable errexit for golangci-lint to capture its exit code
+
+          golangci-lint run --timeout 10m --out-format json > $LINT_REPORT_FILE
+          LINT_EXIT_CODE=$?
+          set -e # Re-enable errexit
+
+          echo "golangci-lint finished with exit code: $LINT_EXIT_CODE"
+          
+          if [ $LINT_EXIT_CODE -ne 0 ]; then
+            LINT_STATUS="failure"
+            echo "golangci-lint found issues or encountered an error (exit code $LINT_EXIT_CODE)."
+          else
+            echo "golangci-lint passed with no issues."
+          fi
+
+          echo "lint_status=${LINT_STATUS}" >> $GITHUB_OUTPUT
+
+          if [ -s "$LINT_REPORT_FILE" ]; then
+            echo "Lint report file found: $LINT_REPORT_FILE. Preparing to output content."
+            EOF_MARKER="LINT_JSON_EOF_$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 10)"
+            {
+              echo "lint_report_json<<$EOF_MARKER"
+              cat "$LINT_REPORT_FILE"
+              echo "$EOF_MARKER"
+            } >> "$GITHUB_OUTPUT"
+            echo "Lint report content successfully set to GITHUB_OUTPUT."
+          else
+            echo "Warning: Lint report file ($LINT_REPORT_FILE) not found or is empty."
+            echo "lint_report_json={}" >> $GITHUB_OUTPUT # Output empty JSON object
+            echo "Empty JSON object string set as lint_report_json output."
+          fi
+
+          if [ "$LINT_STATUS" = "failure" ]; then
+            echo "Exiting with 1 to mark the job as failed due to linting issues or errors."
+            exit 1
+          fi
+
   vulnerability-scan:
     runs-on: ubuntu-latest
     needs: build
