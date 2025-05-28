@@ -19,7 +19,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v4
       with:
-        go-version: '1.22'
+        go-version: '1.24.3'
 
     - name: Build
       run: go build -v ./...
@@ -46,11 +46,32 @@ jobs:
 
     - name: Run osv-scanner on Go project
       run: |
-        osv-scanner scan .
-        cat *.json
+        osv-scanner scan --format json . > osv-results.json
+        cat osv-results.json
 
-    - name: Upload scan result artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: osv-scan-report
-        path: osv-results.json
+    # - name: Upload scan result artifact
+    #   uses: actions/upload-artifact@v4
+    #   with:
+    #     name: osv-scan-report
+    #     path: osv-results.json
+
+    - name: Install OPA
+      run: |
+        curl -L -o opa https://openpolicyagent.org/downloads/latest/opa_linux_amd64
+        chmod +x opa
+        sudo mv opa /usr/local/bin/
+
+    - name: Evaluate vulnerabilities with OPA
+      run: |
+        opa eval --format pretty --data .github/policy/ci.rego --input osv-results.json 'data.osv_scan.allow' > opa_result.txt
+        cat opa_result.txt
+
+    - name: Check OPA decision
+      run: |
+        if grep -q 'true' opa_result.txt; then
+        echo "OPA RESULT:No critical or high vulnerabilities found. Proceeding."
+        else
+        echo "Critical or high vulnerabilities detected:"
+        opa eval --format pretty --data .github/policy/ci.rego --input osv-results.json 'data.osv_scan.deny'
+        exit 1
+        fi
