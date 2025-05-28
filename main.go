@@ -2,7 +2,7 @@
 package main
 
 import (
-	"database/sql"
+	// "database/sql"
 	"fmt"
 	"io"
 	"log"
@@ -10,7 +10,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/dgrijalva/jwt-go"                 // vulnerable
+	// "github.com/dgrijalva/jwt-go"                 // vulnerable
 	// "github.com/denisenkom/go-mssqldb"            // vulnerable
 	"github.com/gorilla/mux"                      // safe
 )
@@ -27,24 +27,24 @@ func serveHTML(w http.ResponseWriter, r *http.Request) {
 	io.Copy(w, file)
 }
 
-func dummyDB() {
-	connString := "sqlserver://username:password@localhost:1433?database=test"
-	db, err := sql.Open("sqlserver", connString)
-	if err != nil {
-		log.Println("DB error:", err)
-		return
-	}
-	defer db.Close()
-}
+// func dummyDB() {
+// 	connString := "sqlserver://username:password@localhost:1433?database=test"
+// 	db, err := sql.Open("sqlserver", connString)
+// 	if err != nil {
+// 		log.Println("DB error:", err)
+// 		return
+// 	}
+// 	defer db.Close()
+// }
 
-func dummyJWT() {
-	token := jwt.New(jwt.SigningMethodHS256)
-	tokenString, err := token.SignedString([]byte("secret"))
-	if err != nil {
-		log.Println("JWT error:", err)
-	}
-	log.Println("Generated token:", tokenString)
-}
+// func dummyJWT() {
+// 	token := jwt.New(jwt.SigningMethodHS256)
+// 	tokenString, err := token.SignedString([]byte("secret"))
+// 	if err != nil {
+// 		log.Println("JWT error:", err)
+// 	}
+// 	log.Println("Generated token:", tokenString)
+// }
 
 func timeHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "The time is %s", time.Now().Format(time.RFC3339))
@@ -58,6 +58,6 @@ func main() {
 	log.Println("Starting server on :8080")
 	http.ListenAndServe(":8080", r)
 
-	dummyDB()
-	dummyJWT()
+	// dummyDB()
+	// dummyJWT()
 }
