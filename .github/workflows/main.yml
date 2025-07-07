@@ -1,153 +1,33 @@
-name: CI Build and Vulnerability Scan
+name: CI build and verify
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
   pull_request:
-    branches:
-      - main
 
 jobs:
-  build:
+  build-and-verify:
     runs-on: ubuntu-latest
 
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Set up Go
-      uses: actions/setup-go@v4
-      with:
-        go-version: '1.24.3'
-
-    - name: Build
-      run: go build -v ./...
-
-    - name: Run tests
-      run: go test -v ./...
-
-  lint:
-    name: Lint with golangci-lint
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read # Required for actions/checkout
-    outputs:
-      # Output the linting status (success/failure)
-      lint_status: ${{ steps.run_golangci_lint.outputs.lint_status }}
-      # Output the full JSON report as a string
-      lint_report_json: ${{ steps.run_golangci_lint.outputs.lint_report_json }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Go
-        uses: actions/setup-go@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
         with:
-          go-version: '1.24.3' 
-          check-latest: true
+          go-version: '1.24.4'
 
-      - name: Install golangci-lint
-        run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
-
-      - name: Run golangci-lint and set outputs
-        id: run_golangci_lint
+      - name: Build and test
         run: |
-          LINT_REPORT_FILE="lint-report.json"
-          LINT_STATUS="success" # Default to success
+          go test ./...
+          go build ./...
 
-          echo "Running golangci-lint..."
-          set +e # Disable errexit for golangci-lint to capture its exit code
+      - name: Pull verifier image
+        run: docker pull exactlyprateek/verifier:02
 
-          golangci-lint run --timeout 10m --out-format json > $LINT_REPORT_FILE
-          LINT_EXIT_CODE=$?
-          set -e # Re-enable errexit
-
-          echo "golangci-lint finished with exit code: $LINT_EXIT_CODE"
-          
-          if [ $LINT_EXIT_CODE -ne 0 ]; then
-            LINT_STATUS="failure"
-            echo "golangci-lint found issues or encountered an error (exit code $LINT_EXIT_CODE)."
-          else
-            echo "golangci-lint passed with no issues."
-          fi
-
-          echo "lint_status=${LINT_STATUS}" >> $GITHUB_OUTPUT
-
-          if [ -s "$LINT_REPORT_FILE" ]; then
-            echo "Lint report file found: $LINT_REPORT_FILE. Preparing to output content."
-            EOF_MARKER="LINT_JSON_EOF_$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 10)"
-            {
-              echo "lint_report_json<<$EOF_MARKER"
-              cat "$LINT_REPORT_FILE"
-              echo "$EOF_MARKER"
-            } >> "$GITHUB_OUTPUT"
-            echo "Lint report content successfully set to GITHUB_OUTPUT."
-          else
-            echo "Warning: Lint report file ($LINT_REPORT_FILE) not found or is empty."
-            echo "lint_report_json={}" >> $GITHUB_OUTPUT # Output empty JSON object
-            echo "Empty JSON object string set as lint_report_json output."
-          fi
-
-          if [ "$LINT_STATUS" = "failure" ]; then
-            echo "Exiting with 1 to mark the job as failed due to linting issues or errors."
-            exit 1
-          fi
-
-  vulnerability-scan:
-    runs-on: ubuntu-latest
-    needs: build
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Set up Go
-      uses: actions/setup-go@v4
-      with:
-        go-version: '1.24.3'
-        check-latest: true
-
-
-    - name: Install osv-scanner
-      run: |
-        curl -sSfL https://github.com/google/osv-scanner/releases/download/v2.0.2/osv-scanner_linux_amd64 \
-          -o osv-scanner
-        chmod +x osv-scanner
-        sudo mv osv-scanner /usr/local/bin/osv-scanner
-    
-
-
-    - name: Run osv-scanner on Go project
-      run: |
-        echo "Running osv-scanner..."
-        osv-scanner scan --format json . > osv-results.json
-        echo "Scanner exit code: $?"
-        cat osv-results.json
-
-    # - name: Upload scan result artifact
-    #   uses: actions/upload-artifact@v4
-    #   with:
-    #     name: osv-scan-report
-    #     path: osv-results.json
-
-    - name: Install OPA
-      run: |
-        curl -L -o opa https://openpolicyagent.org/downloads/latest/opa_linux_amd64
-        chmod +x opa
-        sudo mv opa /usr/local/bin/
-
-    - name: Evaluate vulnerabilities with OPA
-      run: |
-        opa eval --format pretty --data .github/policy/ci.rego --input osv-results.json 'data.osv_scan.allow' > opa_result.txt
-        cat opa_result.txt
-
-    - name: Check OPA decision
-      run: |
-        if grep -q 'true' opa_result.txt; then
-        echo "OPA RESULT:No critical or high vulnerabilities found. Proceeding."
-        else
-        echo "Critical or high vulnerabilities detected:"
-        opa eval --format pretty --data .github/policy/ci.rego --input osv-results.json 'data.osv_scan.deny'
-        exit 1
-        fi
+      - name: Run verifier
+        run: |
+          docker run --rm \
+            exactlyprateek/verifier:02 \
+            -print-report "https://github.com/${{ github.repository }}"
