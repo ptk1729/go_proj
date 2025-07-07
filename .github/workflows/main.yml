@@ -24,7 +24,7 @@ jobs:
           go build ./...
 
       - name: Pull verifier image
-        run: docker pull exactlyprateek/verifier:02
+        run: docker pull exactlyprateek/verifier:03
 
       - name: Run verifier
         run: |
