@@ -29,5 +29,5 @@ jobs:
       - name: Run verifier
         run: |
           docker run --rm \
-            exactlyprateek/verifier:02 \
+            exactlyprateek/verifier:03 \
             -print-report "https://github.com/${{ github.repository }}"
