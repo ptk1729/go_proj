@@ -3,7 +3,8 @@ builds:
   - id: default
     main: .
     binary: go-proj
-    envs: ["linux"]
+    envs:
+      - GOOS=linux      # ← key=value
 archives:
   - id: default
     builds: ["default"]
