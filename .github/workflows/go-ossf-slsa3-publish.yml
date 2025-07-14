@@ -1,25 +1,18 @@
 name: SLSA Go Release
-
 on:
-  # fire on every new GitHub release and on manual run
   release:
     types: [created]
   workflow_dispatch:
 
 permissions:
-  id-token: write   # lets the builder sign
-  contents: write   # lets the job upload assets
+  id-token: write   # sign provenance
+  contents: write   # upload assets
   actions: read
 
 jobs:
-  build:
-    uses: slsa-framework/slsa-github-generator/.github/workflows/builder_go_slsa3.yml@v2.1.0   # latest tag (Feb 2025) :contentReference[oaicite:0]{index=0}
+  build-slsa3:
+    uses: slsa-framework/slsa-github-generator/.github/workflows/builder_go_slsa3.yml@v2.0.0
     with:
-      go-version: "1.24.1"                # match your project
-      envs: linux,windows,darwin          # binaries for all three (edit as needed)
-      go-main-package: ./cmd/myapp        # path to main.go
-      binary: myapp                       # name shown in releases
-      # optional extras ---------------------------------------------------------
-      # ldflags: -s -w                    # size-trim flags
-      # sbom: true                        # add SBOM next to each binary
-      # provenance-download: true         # attach provenance to the release
+      go-version: "1.24.1"          # match your go.mod
+      config-file: .slsa-goreleaser.yml
+      # upload-assets: true         # default is true for tag pushes
