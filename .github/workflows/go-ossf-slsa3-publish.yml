@@ -10,7 +10,6 @@ permissions:
   actions: read     # To read workflow identity
 
 jobs:
-  # Add this job to set dynamic values
   vars:
     runs-on: ubuntu-latest
     outputs:
@@ -19,31 +18,30 @@ jobs:
       commit_date: ${{ steps.slsa-vars.outputs.commit_date }}
       tree_state: ${{ steps.slsa-vars.outputs.tree_state }}
     steps:
+      - uses: actions/checkout@v4
+
       - id: slsa-vars
         run: |
-          # The version is the Git tag name, without the 'v' prefix
+          # Set version from Git tag (e.g., v1.2.3 -> 1.2.3)
           echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
           
-          # The commit hash from the checkout
+          # Get the commit hash
           echo "commit=${{ github.sha }}" >> "$GITHUB_OUTPUT"
           
-          # The commit date in RFC3339 format
+          # Get the commit date in RFC3339 format.
           echo "commit_date=$(git show -s --format=%cI ${{ github.sha }})" >> "$GITHUB_OUTPUT"
           
-          # Tree state should be 'clean' for official builds
+          # Set tree state
           echo "tree_state=clean" >> "$GITHUB_OUTPUT"
 
   build-slsa3:
-    # This job needs the outputs from the 'vars' job
     needs: [vars]
     uses: slsa-framework/slsa-github-generator/.github/workflows/builder_go_slsa3.yml@v2.0.0
     with:
       go-version: "1.24.1"
       config-file: .slsa-goreleaser.yml
-      # Pass the dynamic values to the builder
-      evaluated-envs: >-
+      evaluated-envs: |
         VERSION=${{ needs.vars.outputs.version }}
         COMMIT=${{ needs.vars.outputs.commit }}
         COMMIT_DATE=${{ needs.vars.outputs.commit_date }}
         TREE_STATE=${{ needs.vars.outputs.tree_state }}
-      # upload-assets: true # default is true for tag pushes
