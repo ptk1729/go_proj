@@ -16,3 +16,6 @@ jobs:
       go-version: "1.24.1"          # match your go.mod
       config-file: .slsa-goreleaser.yml
       # upload-assets: true         # default is true for tag pushes
+    env:
+      GOOS: linux
+      GOARCH: amd64

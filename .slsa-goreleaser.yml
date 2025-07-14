@@ -4,7 +4,8 @@ builds:
     main: .
     binary: go-proj
     envs:
-      - GOOS=linux      # ← key=value
+      - GOOS
+      - GOARCH
 archives:
   - id: default
     builds: ["default"]
