@@ -1,0 +1,11 @@
+version: 0.1.0
+builds:
+  - id: default
+    main: ./cmd/go-proj
+    binary: go-proj
+    envs: ["linux", "windows", "darwin"]
+archives:
+  - id: default
+    builds: ["default"]
+    format: tar.gz
+    wrap_in_directory: true
