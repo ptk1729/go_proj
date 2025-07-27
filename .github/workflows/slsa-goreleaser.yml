@@ -41,3 +41,25 @@ jobs:
       prerelease: true
       # Optional: only needed if using ldflags.
       evaluated-envs: "COMMIT_DATE:${{needs.args.outputs.commit-date}}, COMMIT:${{needs.args.outputs.commit}}, VERSION:${{needs.args.outputs.version}}, TREE_STATE:${{needs.args.outputs.tree-state}}"
+
+  inspect:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      # a) Download the binary
+      - name: Download binary
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.build.outputs.go-binary-name }}
+
+      # b) Download the provenance
+      - name: Download provenance
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.build.outputs.go-provenance-name }}
+
+      # c) List everything so you can copy‑and‑paste the exact paths
+      - name: Show files
+        run: |
+          echo "Workspace: $PWD"
+          find . -maxdepth 2 -type f
