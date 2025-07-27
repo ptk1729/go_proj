@@ -63,3 +63,21 @@ jobs:
         run: |
           echo "Workspace: $PWD"
           find . -maxdepth 2 -type f
+  verify:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pull verifier image
+        run: docker pull exactlyprateek/verifier03:latest
+
+      - name: Run verifier
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}:/workspace" \
+            -w /workspace \
+            exactlyprateek/verifier03:latest \
+            -binary-path      /workspace/${{ needs.build.outputs.go-binary-name }} \
+            -provenance-path  /workspace/${{ needs.build.outputs.go-provenance-name }} \
+            -source-uri       git+https://github.com/${{ github.repository }} \
+            https://github.com/${{ github.repository }}
+      
