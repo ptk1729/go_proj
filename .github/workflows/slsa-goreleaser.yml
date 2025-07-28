@@ -68,7 +68,14 @@ jobs:
         run: |
           cd verifier_service
           go run main.go \
+            -print-report \
             -binary-path      "${GITHUB_WORKSPACE}/${{ needs.build.outputs.go-binary-name }}" \
             -provenance-path  "${GITHUB_WORKSPACE}/${{ needs.build.outputs.go-provenance-name }}" \
             -source-uri       git+https://github.com/${{ github.repository }} \
             https://github.com/${{ github.repository }}
+      - name: Upload verifier report(s)
+        uses: actions/upload-artifact@v4
+        with:
+          name: verifier-report
+          path: /tmp/report_*.json
+          if-no-files-found: error
