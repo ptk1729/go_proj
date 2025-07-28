@@ -66,7 +66,8 @@ jobs:
       # d) run the check
       - name: Run verifier
         run: |
-          go run ./verifier_service/main.go \
+          cd verifier_service
+          go run main.go \
             -binary-path      "${GITHUB_WORKSPACE}/${{ needs.build.outputs.go-binary-name }}" \
             -provenance-path  "${GITHUB_WORKSPACE}/${{ needs.build.outputs.go-provenance-name }}" \
             -source-uri       git+https://github.com/${{ github.repository }} \
