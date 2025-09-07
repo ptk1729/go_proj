@@ -82,10 +82,12 @@ jobs:
           if-no-files-found: error
       - name: Run OPA validation
         run: |
-          docker run -rm \
+          test -f /tmp/report.json
+          docker run --rm \
           -v /tmp:/tmp:ro \
-          exactlyprateek/opa:01 \
+          docker.io/exactlyprateek/opa_plugin:01 \
           /tmp/report.json | tee /tmp/opa-result.json
+
       - name: Upload OPA result
         uses: actions/upload-artifact@v4
         with:
