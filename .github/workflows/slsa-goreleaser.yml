@@ -77,7 +77,18 @@ jobs:
       - name: Upload verifier report(s)
         uses: actions/upload-artifact@v4
         with:
-          name: verifier-report.json
+          name: verifier-report.zip
           path: /tmp/report.json
           if-no-files-found: error
-      # - name: Run OPA validation
+      - name: Run OPA validation
+        run: |
+          docker run -rm \
+          -v /tmp:/tmp:ro \
+          exactlyprateek/opa:01 \
+          /tmp/report.json | tee /tmp/opa-result.json
+      - name: Upload OPA result
+        uses: actions/upload-artifact@v4
+        with:
+          name: opa-result.json
+          path: /tmp/opa-result.json
+          if-no-files-found: error
