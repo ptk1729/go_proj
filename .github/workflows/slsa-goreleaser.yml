@@ -72,10 +72,12 @@ jobs:
             -binary-path      "${GITHUB_WORKSPACE}/${{ needs.build.outputs.go-binary-name }}" \
             -provenance-path  "${GITHUB_WORKSPACE}/${{ needs.build.outputs.go-provenance-name }}" \
             -source-uri       git+https://github.com/${{ github.repository }} \
+            -report-path      "/tmp/report.json" \
             https://github.com/${{ github.repository }}
       - name: Upload verifier report(s)
         uses: actions/upload-artifact@v4
         with:
-          name: verifier-report
-          path: /tmp/report_*.json
+          name: verifier-report.json
+          path: /tmp/report.json
           if-no-files-found: error
+      # - name: Run OPA validation
